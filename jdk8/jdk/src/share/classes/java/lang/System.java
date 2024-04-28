@@ -990,6 +990,10 @@ public final class System {
         Runtime.getRuntime().gc();
     }
 
+    public static void gc() {
+        Runtime.getRuntime().gc();
+    }
+
     /**
      * Runs the finalization methods of any objects pending finalization.
      * <p>

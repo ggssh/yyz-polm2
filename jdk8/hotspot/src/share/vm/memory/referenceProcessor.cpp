@@ -596,6 +596,7 @@ ReferenceProcessor::pp2_work(DiscoveredList&    refs_list,
   DiscoveredListIterator iter(refs_list, keep_alive, is_alive);
   while (iter.has_next()) {
     iter.load_ptrs(DEBUG_ONLY(false /* allow_null_referent */));
+    // <underscore> this is iterating through the list of references of an object!
     DEBUG_ONLY(oop next = java_lang_ref_Reference::next(iter.obj());)
     assert(next == NULL, "Should not discover inactive Reference");
     if (iter.is_referent_alive()) {
@@ -633,6 +634,7 @@ ReferenceProcessor::pp2_work_concurrent_discovery(DiscoveredList&    refs_list,
   DiscoveredListIterator iter(refs_list, keep_alive, is_alive);
   while (iter.has_next()) {
     iter.load_ptrs(DEBUG_ONLY(true /* allow_null_referent */));
+    // <underscore> this is iterating through the list of references of an object!
     HeapWord* next_addr = java_lang_ref_Reference::next_addr(iter.obj());
     oop next = java_lang_ref_Reference::next(iter.obj());
     if ((iter.referent() == NULL || iter.is_referent_alive() ||

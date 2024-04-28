@@ -52,6 +52,39 @@ PSGCAdaptivePolicyCounters* ParallelScavengeHeap::_gc_policy_counters = NULL;
 ParallelScavengeHeap* ParallelScavengeHeap::_psh = NULL;
 GCTaskManager* ParallelScavengeHeap::_gc_task_manager = NULL;
 
+  // This method asks the heap to prepare for migration.
+  void ParallelScavengeHeap::prepare_migration(jlong bandwidth) {
+      gclog_or_tty->print_cr("INSIDE PS (bandwidth=%ld)", bandwidth); // DEBUG
+      this->print_on(gclog_or_tty);
+      collect(GCCause::_gc_locker);
+      gclog_or_tty->print_cr("DONE PS (bandwidth=%ld)", bandwidth); // DEBUG
+  }
+ 
+  // This method asks the heap to send the free heap regions through the sock
+  // file descriptor.
+  void ParallelScavengeHeap::send_free_regions(jint sockfd) { 
+    gclog_or_tty->print_cr("INSIDE PS (sockfd=%d)!", sockfd); //DEBUG 
+    this->print_on(gclog_or_tty);
+    
+    // Send free Eden, Write pointer into socket, read poiter (uint64_t)
+    if (write(sockfd, this->young_gen()->eden_space()->top_addr(), sizeof(HeapWord*)) < 0) {
+        gclog_or_tty->print_cr("[send_free_regions] ERROR sending r->top()");
+    }
+    if (write(sockfd, this->young_gen()->eden_space()->end_addr(), sizeof(HeapWord*)) < 0) {
+        gclog_or_tty->print_cr("[send_free_regions] ERROR sending r->end()");
+    }
+    
+    // Send free To, Write pointer into socket, read poiter (uint64_t)
+    if (write(sockfd, this->young_gen()->to_space()->top_addr(), sizeof(HeapWord*)) < 0) {
+        gclog_or_tty->print_cr("[send_free_regions] ERROR sending r->top()");
+    }
+    if (write(sockfd, this->_young_gen->to_space()->end_addr(), sizeof(HeapWord*)) < 0) {
+        gclog_or_tty->print_cr("[send_free_regions] ERROR sending r->end()");
+    }
+    
+    gclog_or_tty->print_cr("DONE PS (sockfd=%d)!", sockfd); //DEBUG  
+  }
+
 jint ParallelScavengeHeap::initialize() {
   CollectedHeap::pre_initialize();
 
@@ -246,7 +279,9 @@ bool ParallelScavengeHeap::is_in_partial_collection(const void *p) {
 // we rely on the size_policy object to force a bail out.
 HeapWord* ParallelScavengeHeap::mem_allocate(
                                      size_t size,
-                                     bool* gc_overhead_limit_was_exceeded) {
+                                     bool* gc_overhead_limit_was_exceeded,
+                                     bool is_alloc_gen,
+                                     int gen) {
   assert(!SafepointSynchronize::is_at_safepoint(), "should not be at safepoint");
   assert(Thread::current() != (Thread*)VMThread::vm_thread(), "should not be in vm thread");
   assert(!Heap_lock->owned_by_self(), "this thread should not own the Heap_lock");
@@ -445,6 +480,7 @@ HeapWord* ParallelScavengeHeap::failed_mem_allocate(size_t size) {
   // First level allocation failure, scavenge and allocate in young gen.
   GCCauseSetter gccs(this, GCCause::_allocation_failure);
   const bool invoked_full_gc = PSScavenge::invoke();
+   
   HeapWord* result = young_gen()->allocate(size);
 
   // Second level allocation failure.

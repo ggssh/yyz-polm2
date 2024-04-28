@@ -1698,6 +1698,26 @@ JvmtiEnv::ForceGarbageCollection() {
   return JVMTI_ERROR_NONE;
 } /* end ForceGarbageCollection */
 
+jvmtiError
+JvmtiEnv::PrepareMigration(jlong bandwidth) {
+  if (Universe::heap()->kind() != CollectedHeap::G1CollectedHeap) {
+    // TODO - error, not a G1 heap.
+    printf("Not a G1 heap...\n");
+  }
+  Universe::heap()->prepare_migration(bandwidth);
+  return JVMTI_ERROR_NONE;
+} /* end PrepareMigration */
+
+jvmtiError
+JvmtiEnv::SendFreeRegions(jint sockfd) {
+  if (Universe::heap()->kind() != CollectedHeap::G1CollectedHeap) {
+    // TODO - error, not a G1 heap.
+    printf("Not a G1 heap...\n");
+  }
+  Universe::heap()->send_free_regions(sockfd);
+  return JVMTI_ERROR_NONE;
+} /* end SendFreeRegions */
+
 
   //
   // Heap (1.0) functions

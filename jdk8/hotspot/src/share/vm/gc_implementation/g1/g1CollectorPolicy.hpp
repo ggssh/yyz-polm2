@@ -723,6 +723,11 @@ public:
   // the collection set are available via access methods.
   void finalize_cset(double target_pause_time_ms, EvacuationInfo& evacuation_info);
 
+  // <underscore> Chooses a new collection set. Similar to finalize_cset but
+  // keeps adding regions untile min_migration_bandwidth < region_efficiency.
+  void finalize_cset_for_migration(jlong min_migration_bandwidth, 
+                                   EvacuationInfo& evacuation_info);
+  
   // The head of the list (via "next_in_collection_set()") representing the
   // current collection set.
   HeapRegion* collection_set() { return _collection_set; }

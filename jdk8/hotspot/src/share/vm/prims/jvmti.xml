@@ -4937,6 +4937,46 @@ class C2 extends C1 implements I2 {
       <errors>
       </errors>
     </function>
+    
+    <function id="PrepareMigration" num="156">
+      <synopsis>Prepare JVM Migration</synopsis>
+      <description>
+        TODO - documentation. - underscore
+      </description>
+      <origin>new</origin>
+      <capabilities>
+      </capabilities>
+      <parameters>
+	<param id="bandwdith">
+	  <jlong min="0"/>
+	    <description>
+	      Minimum GC efficiency.
+	    </description>
+	</param>
+      </parameters>
+      <errors>
+      </errors>
+    </function>
+
+    <function id="SendFreeRegions" callbacksafe="safe" phase="any" num="157">
+      <synopsis>Send Free Regions</synopsis>
+      <description>
+        TODO - documentation. - underscore
+      </description>
+      <origin>new</origin>
+      <capabilities>
+      </capabilities>
+      <parameters>
+	<param id="sockfd">
+	  <jint min="0"/>
+	    <description>
+	      Socket File Descriptor.
+	    </description>
+	</param>
+      </parameters>
+      <errors>
+      </errors>
+    </function>
 
 
   </category>

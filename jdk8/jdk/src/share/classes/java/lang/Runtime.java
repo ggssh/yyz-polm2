@@ -687,6 +687,8 @@ public class Runtime {
      */
     public native void gc();
 
+    public native int newAllocGen();
+
     /* Wormhole for calling java.lang.ref.Finalizer.runFinalization */
     private static native void runFinalization0();
 

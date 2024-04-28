@@ -774,6 +774,7 @@ char* Universe::preferred_heap_base(size_t heap_size, size_t alignment, NARROW_O
   return (char*)base; // also return NULL (don't care) for 32-bit VM
 }
 
+/* <underscore> where the heap gets created. */
 jint Universe::initialize_heap() {
 
   if (UseParallelGC) {
@@ -789,6 +790,7 @@ jint Universe::initialize_heap() {
     g1p->initialize_all();
     G1CollectedHeap* g1h = new G1CollectedHeap(g1p);
     Universe::_collectedHeap = g1h;
+    g1h->print();
 #else  // INCLUDE_ALL_GCS
     fatal("UseG1GC not supported in java kernel vm.");
 #endif // INCLUDE_ALL_GCS

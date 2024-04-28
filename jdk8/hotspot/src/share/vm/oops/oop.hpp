@@ -132,6 +132,7 @@ class oopDesc {
 
  public:
   // Need this as public for garbage collection.
+  // <underscore> this is how the GC is able to get references from the object!
   template <class T> T* obj_field_addr(int offset) const;
 
   // Needed for javaClasses

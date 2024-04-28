@@ -42,6 +42,7 @@ class GCTaskManager;
 class PSAdaptiveSizePolicy;
 class PSHeapSummary;
 
+// <underscore> subclass of CollectedHeap!
 class ParallelScavengeHeap : public CollectedHeap {
   friend class VMStructs;
  private:
@@ -153,7 +154,8 @@ class ParallelScavengeHeap : public CollectedHeap {
   // an excessive amount of time is being spent doing collections
   // and caused a NULL to be returned.  If a NULL is not returned,
   // "gc_time_limit_was_exceeded" has an undefined meaning.
-  HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded);
+  // <underscore> Added is_alloc_gen and gen arguments.
+  HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded, bool is_alloc_gen, int gen);
 
   // Allocation attempt(s) during a safepoint. It should never be called
   // to allocate a new TLAB as this allocation might be satisfied out
@@ -161,7 +163,18 @@ class ParallelScavengeHeap : public CollectedHeap {
   HeapWord* failed_mem_allocate(size_t size);
 
   // Support for System.gc()
+  // <underscore> one possible entry for the GC to work, from System.gc().
+  // <underscore> this expands in the following frames:
+  // <underscore> collect -> vmThread.execute -> VM_ParallelGCSystemGC.doit()
+  // <underscore> -> [invoke_scavenge | do_full_collection]
   void collect(GCCause::Cause cause);
+  
+  // This method asks the heap to prepare for migration.
+  virtual void prepare_migration(jlong bandwidth);
+ 
+  // This method asks the heap to send the free heap regions through the sock
+  // file descriptor.
+  virtual void send_free_regions(jint sockfd);
 
   // These also should be called by the vm thread at a safepoint (e.g., from a
   // VM operation).
@@ -170,6 +183,8 @@ class ParallelScavengeHeap : public CollectedHeap {
   // will then attempt a full gc.  The second collects the entire heap; if
   // maximum_compaction is true, it will compact everything and clear all soft
   // references.
+  // <underscore> I think these two methods (invoke_scavenge and
+  // <underscore> do_full_collection are two main entry points for GC.
   inline void invoke_scavenge();
 
   // Perform a full collection

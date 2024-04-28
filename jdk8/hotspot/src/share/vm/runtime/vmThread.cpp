@@ -580,7 +580,8 @@ void VMThread::loop() {
     }
   }
 }
-
+// <underscore> implementation of VMThread::execute called from within gc's 
+// <underscore> implementation. This is like a preparing method for many things.
 void VMThread::execute(VM_Operation* op) {
   Thread* t = Thread::current();
 

@@ -92,6 +92,7 @@ void ConcurrentMarkThread::run() {
     {
       ResourceMark rm;
       HandleMark   hm;
+      
       double cycle_start = os::elapsedVTime();
 
       // We have to ensure that we finish scanning the root regions

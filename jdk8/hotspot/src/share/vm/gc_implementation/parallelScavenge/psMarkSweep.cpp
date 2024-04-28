@@ -189,14 +189,16 @@ bool PSMarkSweep::invoke_no_policy(bool clear_all_softrefs) {
     // For PrintGCDetails
     size_t old_gen_prev_used = old_gen->used_in_bytes();
     size_t young_gen_prev_used = young_gen->used_in_bytes();
-
+    
+    // <underscore> this is where it gets started.
+    
     allocate_stacks();
 
     COMPILER2_PRESENT(DerivedPointerTable::clear());
 
     ref_processor()->enable_discovery(true /*verify_disabled*/, true /*verify_no_refs*/);
     ref_processor()->setup_policy(clear_all_softrefs);
-
+    
     mark_sweep_phase1(clear_all_softrefs);
 
     mark_sweep_phase2();
@@ -212,6 +214,8 @@ bool PSMarkSweep::invoke_no_policy(bool clear_all_softrefs) {
     restore_marks();
 
     deallocate_stacks();
+    
+    // <underscore> this is where it stops..
 
     if (ZapUnusedHeapArea) {
       // Do a complete mangle (top to end) because the usage for

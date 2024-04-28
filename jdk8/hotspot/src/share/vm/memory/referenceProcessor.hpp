@@ -318,9 +318,11 @@ class ReferenceProcessor : public CHeapObj<mtGC> {
                              VoidClosure*       complete_gc) {
     if (discovery_is_atomic()) {
       // complete_gc is ignored in this case for this phase
+      // <underscore> this will traverse the object graph!
       pp2_work(refs_list, is_alive, keep_alive);
     } else {
       assert(complete_gc != NULL, "Error");
+      // <underscore> this will traverse the object graph!
       pp2_work_concurrent_discovery(refs_list, is_alive,
                                     keep_alive, complete_gc);
     }
