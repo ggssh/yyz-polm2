@@ -9,7 +9,43 @@
 <!-- in the project's Project Properties dialog box.-->
 <project name="OLR-ObjectGraphAnalyzer" default="default" basedir=".">
     <description>Builds, tests, and runs the project OLR-ObjectGraphAnalyzer.</description>
-    <import file="nbproject/build-impl.xml"/>
+    <!-- <import file="nbproject/build-impl.xml"/> -->
+    <property name="lib.dir" value="libs" />
+
+    <path id="master-classpath">
+		<fileset dir="${basedir}/${lib.dir}">
+			<include name="*.jar" />
+		</fileset>
+		<!-- <pathelement path="${build.dir}" /> -->
+	</path>
+
+    <target name="clean">
+        <delete dir="${basedir}/build"/>
+    </target>
+
+    <target name="compile" depends="clean">
+        <mkdir dir ="${basedir}/build/classes"/>
+        <javac srcdir ="${basedir}/src" destdir ="${basedir}/build/classes">
+            <classpath refid="master-classpath" />
+        </javac>
+    </target>
+
+    <target name="package" depends="compile">
+        <manifest file="${basedir}/build/MANIFEST.MF">
+			<attribute name="Built-By" value="${user.name}" />
+			<attribute name="Built-Date" value="${TODAY}" />
+			<attribute name="Main-Class" value="olr.ga.ObjectGraphAnalyzer" />
+		</manifest>
+
+        <jar destfile="${basedir}/build/ObjectGraphAnalyzer.jar"
+			basedir="${basedir}/build/classes"
+			includes="**/*.class **/*.properties **/*.xml"
+			manifest="${basedir}/build/MANIFEST.MF">
+            <zipfileset src="${lib.dir}/guava.jar"></zipfileset>
+            <zipfileset src="${lib.dir}/hprof-parser-1.0-SNAPSHOT-sources.jar"></zipfileset>
+            <zipfileset src="${lib.dir}/hprof-parser-1.0-SNAPSHOT.jar"></zipfileset>
+        </jar>
+    </target>
     <!--
 
     There exist several targets which are by default empty and which can be 
