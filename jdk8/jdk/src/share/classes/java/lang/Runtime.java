@@ -669,6 +669,8 @@ public class Runtime {
      */
     public native long maxMemory();
 
+    public native int newAllocGen();
+
     /**
      * Runs the garbage collector.
      * Calling this method suggests that the Java virtual machine expend
@@ -686,8 +688,6 @@ public class Runtime {
      * means of invoking this method.
      */
     public native void gc();
-
-    public native int newAllocGen();
 
     /* Wormhole for calling java.lang.ref.Finalizer.runFinalization */
     private static native void runFinalization0();

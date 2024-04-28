@@ -968,6 +968,10 @@ public final class System {
         Runtime.getRuntime().exit(status);
     }
 
+    public static int newAllocGen() {
+        return Runtime.getRuntime().newAllocGen();
+    }
+
     /**
      * Runs the garbage collector.
      * <p>
@@ -986,10 +990,6 @@ public final class System {
      *
      * @see     java.lang.Runtime#gc()
      */
-    public static void gc() {
-        Runtime.getRuntime().gc();
-    }
-
     public static void gc() {
         Runtime.getRuntime().gc();
     }
