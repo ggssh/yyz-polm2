@@ -669,7 +669,15 @@ public class Runtime {
      */
     public native long maxMemory();
 
+    // <yyz>
     public native int newAllocGen();
+
+    public native int getAllocGen();
+
+    public native void setAllocGen(int gen);
+
+    public native void collectAllocGen(int gen);
+    // </yyz>
 
     /**
      * Runs the garbage collector.

@@ -65,6 +65,32 @@ Java_java_lang_Runtime_gc(JNIEnv *env, jobject this)
     JVM_GC();
 }
 
+// <yyz>
+JNIEXPORT jint JNICALL
+Java_java_lang_Runtime_newAllocGen(JNIEnv *env, jobject this)
+{
+    return JVM_NewAllocGen();
+}
+
+JNIEXPORT void JNICALL
+Java_java_lang_Runtime_setAllocGen(JNIEnv *env, jobject this, jint gen)
+{
+    JVM_SetAllocGen(gen);
+}
+
+JNIEXPORT jint JNICALL
+Java_java_lang_Runtime_getAllocGen(JNIEnv *env, jobject this)
+{
+    return JVM_GetAllocGen();
+}
+
+JNIEXPORT void JNICALL
+Java_java_lang_Runtime_collectAllocGen(JNIEnv *env, jobject this, jint gen)
+{
+    JVM_CollectAllocGen(gen);
+}
+// </yyz>
+
 JNIEXPORT void JNICALL
 Java_java_lang_Runtime_traceInstructions(JNIEnv *env, jobject this, jboolean on)
 {

@@ -968,9 +968,24 @@ public final class System {
         Runtime.getRuntime().exit(status);
     }
 
+    // <yyz>
     public static int newAllocGen() {
         return Runtime.getRuntime().newAllocGen();
     }
+
+    public static void setAllocGen(int gen) {
+        Runtime.getRuntime().setAllocGen(gen);
+    }
+
+    public static int getAllocGen() {
+        return Runtime.getRuntime().getAllocGen();
+    }
+
+    public static void collectAllocGen(int gen) {
+        Runtime.getRuntime().collectAllocGen(gen);
+    }
+
+    // </yyz>
 
     /**
      * Runs the garbage collector.

@@ -423,24 +423,24 @@ JVM_END
 
 // <underscore>
 JVM_ENTRY_NO_ENV(void, JVM_SetAllocGen(jint gen))
-  JVMWrapper("JVM_SetAllocGC");
+  JVMWrapper("JVM_SetAllocGen");
   thread->set_alloc_gen(gen);
 JVM_END
 
 JVM_ENTRY_NO_ENV(jint, JVM_GetAllocGen())
-  JVMWrapper("JVM_GetAllocGC");
+  JVMWrapper("JVM_GetAllocGen");
   return thread->alloc_gen();
 JVM_END
 
 JVM_ENTRY_NO_ENV(jint, JVM_NewAllocGen())
-  JVMWrapper("JVM_NewAllocGC");
+  JVMWrapper("JVM_NewAllocGen");
   jint gen = Universe::heap()->new_alloc_gen();
   thread->set_alloc_gen(gen);
   return gen;
 JVM_END
 
 JVM_ENTRY_NO_ENV(void, JVM_CollectAllocGen(jint gen))
-  JVMWrapper("JVM_CollectAllocGC");
+  JVMWrapper("JVM_CollectAllocGen");
   Universe::heap()->collect_alloc_gen(gen);
 JVM_END
 // </underscore>

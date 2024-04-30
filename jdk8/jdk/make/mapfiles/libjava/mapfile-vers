@@ -192,7 +192,11 @@ SUNWprivate_1.1 {
 		Java_java_lang_reflect_Executable_getTypeAnnotationBytes0;
 		Java_java_lang_reflect_Field_getTypeAnnotationBytes0;
 		Java_java_lang_Runtime_freeMemory;
-                Java_java_lang_Runtime_maxMemory;
+        Java_java_lang_Runtime_maxMemory;
+		Java_java_lang_Runtime_newAllocGen;
+		Java_java_lang_Runtime_setAllocGen;
+		Java_java_lang_Runtime_getAllocGen;
+		Java_java_lang_Runtime_collectAllocGen;
 		Java_java_lang_Runtime_gc;
 		Java_java_lang_Runtime_runFinalization0;
 		Java_java_lang_Runtime_totalMemory;
