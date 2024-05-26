@@ -9,56 +9,29 @@ import edu.tufts.eaftan.hprofparser.handler.NullRecordHandler;
 import edu.tufts.eaftan.hprofparser.parser.datastructures.Value;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class HeapDumpHandler extends NullRecordHandler {
 
-  private final Map<Integer, Set<Integer>[]> lifetimes;
-  private final Map<Integer, Integer> object2Stacktrace;
-  private final int curAge;
+  // private final ConcurrentHashMap<Integer, Set<Integer>[]> lifetimes;
+  // private final Map<Integer, Integer> object2Stacktrace;
+  // private final int curAge;
 
-  public HeapDumpHandler(
-          Map<Integer, Set<Integer>[]> lifetimes,
-          Map<Integer, Integer> object2Stacktrace,
-          int curAge) {
-      this.lifetimes = lifetimes;
-      this.object2Stacktrace = object2Stacktrace;
-      this.curAge = curAge;
-  }
+  // public HeapDumpHandler(
+  //   ConcurrentHashMap<Integer, Set<Integer>[]> lifetimes,
+  //         Map<Integer, Integer> object2Stacktrace,
+  //         int curAge) {
+  //     this.lifetimes = lifetimes;
+  //     this.object2Stacktrace = object2Stacktrace;
+  //     this.curAge = curAge;
+  // }
 
-  private synchronized void update(Long lObjID) {
-      int objID = lObjID.intValue();
-      Integer stID = object2Stacktrace.get(objID);
-
-      if (stID == null) {
-          if (ObjectGraphAnalyzer.DEBUG_WARN) {
-            System.err.println("WARN: obj ID not found: " + objID);
-          }
-          return;
-      } else {
-          if (ObjectGraphAnalyzer.DEBUG) {
-            System.err.println("OK: obj ID found: " + objID);
-          }
-      }
-
-      if (!lifetimes.containsKey(stID)) {
-          if (ObjectGraphAnalyzer.DEBUG_WARN) {
-            System.err.println("WARN: st ID not found: " + stID);
-          }
-          return;
-      }
-
-      Set<Integer>[] allocs = lifetimes.get(stID);
-      for (int i = 0; i < allocs.length -1; i++) {
-          if (allocs[i].contains(objID)) {
-              allocs[i].remove(objID);
-              allocs[i+1].add(objID);
-              return;
-          }
-      }
-      if (ObjectGraphAnalyzer.DEBUG_WARN) {
-        System.err.println("WARN: objID " + objID + " not found in stID  " + stID);
-      }
-  }
+  // public HeapDumpHandler(
+  //         Map<Integer, Integer> object2Stacktrace,
+  //         int curAge) {
+  //     this.object2Stacktrace = object2Stacktrace;
+  //     this.curAge = curAge;
+  // }
 
   @Override
   public void instanceDump(long objId, int stackTraceSerialNum,
@@ -69,7 +42,8 @@ public class HeapDumpHandler extends NullRecordHandler {
     if (ObjectGraphAnalyzer.DEBUG) {
         System.out.print(String.format("Dumped object with id=%d \t class id=%d\n", objId, classObjId));
     }
-    update(objId);
+    // update(objId);
+    ObjectGraphAnalyzer.update(objId);
   }
 
   @Override
@@ -78,7 +52,8 @@ public class HeapDumpHandler extends NullRecordHandler {
     if (ObjectGraphAnalyzer.DEBUG) {
         System.out.print(String.format("Dumped object array with id=%d \t elem class id=%d\n", objId, elemClassObjId));
     }
-    update(objId);
+    // update(objId);
+    ObjectGraphAnalyzer.update(objId);
   }
 
   @Override
@@ -87,6 +62,7 @@ public class HeapDumpHandler extends NullRecordHandler {
     if (ObjectGraphAnalyzer.DEBUG) {
         System.out.print(String.format("Dumped prim array with id=%d \t elem type id=%d\n", objId, elemType));
     }
-    update(objId);
+    // update(objId);
+    ObjectGraphAnalyzer.update(objId);
   }
 }

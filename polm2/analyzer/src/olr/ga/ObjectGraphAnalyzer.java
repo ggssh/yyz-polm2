@@ -22,7 +22,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 public class ObjectGraphAnalyzer {
 
@@ -30,7 +30,7 @@ public class ObjectGraphAnalyzer {
      * Maps stack trace IDs to lists of sets of object IDs.
      * Each set represents a generation/age.
      */
-    public static final Map<Integer, Set<Integer>[]> lifetimes = new HashMap<Integer, Set<Integer>[]>();
+    public static final ConcurrentHashMap<Integer, Set<Integer>[]> lifetimes = new ConcurrentHashMap();
 
     /**
      * Maps object ID to stack trace ID.
@@ -55,6 +55,9 @@ public class ObjectGraphAnalyzer {
     protected static final boolean DEBUG = false;
     protected static final boolean DEBUG_WARN = false;
 
+    private static final ExecutorService executor = Executors
+            .newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
     public static void usage() {
         System.out.println("Usage java ObjectGraphAnalyzer <olr-ar output dir> <dumps1> ... <dumpN>");
     }
@@ -73,75 +76,88 @@ public class ObjectGraphAnalyzer {
     }
 
     public static void processHeapDumps(String[] dumps) throws Exception {
-        Date start, finish;
-        int curAge = 1;
+        try {
+            Date start, finish;
+            int curAge = 1;
 
-        for (String dump : dumps) {
-            System.out.println(String.format("Processing dump %s...", dump));
-            start =new Date();
+            CompletableFuture<?>[] futures = new CompletableFuture[dumps.length];
 
-            try {
+            for (int i = 0; i < dumps.length; i++) {
+                // final int age = curAge;
+                final String dump = dumps[i];
+                futures[i] = CompletableFuture.runAsync(() -> {
+                    try {
+                        System.out.println(String.format("Processing dump %s...", dump));
+                        Date startDump = new Date();
 
-                HeapDumpHandler hdh = new HeapDumpHandler(
-                        lifetimes, object2Stacktrace, curAge);
-                HprofParser parser = new HprofParser(hdh);
+                        // HeapDumpHandler hdh = new HeapDumpHandler(lifetimes, object2Stacktrace, age);
+                        HeapDumpHandler hdh = new HeapDumpHandler();
+                        HprofParser parser = new HprofParser(hdh);
 
-                DataInputStream in =
-                        new DataInputStream(
-                                new BufferedInputStream(
-                                        new FileInputStream(dump)));
-                parser.parse(in);
-                in.close();
-            } catch (EOFException e) {
-                System.err.println("ERR: failed to to process " + dump);
-                e.printStackTrace();
+                        try (DataInputStream in = new DataInputStream(
+                                new BufferedInputStream(new FileInputStream(dump)))) {
+                            parser.parse(in);
+                        }
+
+                        Date finishDump = new Date();
+                        System.out.println(String.format("Processing dump %s...Done (%s sec)",
+                                dump, (finishDump.getTime() - startDump.getTime()) / 1000));
+                    } catch (EOFException e) {
+                        System.err.println("ERR: failed to process " + dump);
+                        e.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }, executor);
+                curAge++;
             }
 
-            finish =new Date();
-            System.out.println(String.format("Processing dump %s...Done (%s sec)",
-                    dump, (finish.getTime()-start.getTime())/1000));
-            curAge++;
-            System.gc();
+            CompletableFuture.allOf(futures).join();
+        } finally {
+            executor.shutdown();
+            executor.awaitTermination(10, TimeUnit.HOURS);
         }
         // TODO - print stats?
     }
 
     /**
      * Returns a map between a stack trace id and a stack trace.
+     * 
      * @param path
      * @return
      * @throws Exception
      */
     private static ConcurrentHashMap<Integer, StackTraceElement[]> loadStackTraces(String path) throws Exception {
         ConcurrentHashMap<Integer, StackTraceElement[]> traces;
-        ObjectInputStream ois =
-                new ObjectInputStream(
-                    new FileInputStream(path));
+        ObjectInputStream ois = new ObjectInputStream(
+                new FileInputStream(path));
         traces = (ConcurrentHashMap<Integer, StackTraceElement[]>) ois.readObject();
-        ois .close();
+        ois.close();
         return traces;
     }
 
-
     private static boolean filterStackTraceElement(StackTraceElement ste) {
-        if (ste.getClassName().equals("com.google.monitoring.runtime.instrumentation.AllocationInstrumenter") && ste.getMethodName().equals("instrument")) {
+        if (ste.getClassName().equals("com.google.monitoring.runtime.instrumentation.AllocationInstrumenter")
+                && ste.getMethodName().equals("instrument")) {
             return true;
         }
         return false;
     }
 
-    private static ConcurrentHashMap<Integer, StackTraceElement[]>
-        filterStackTraces(
-                ConcurrentHashMap<Integer, StackTraceElement[]> traces) throws Exception {
+    private static ConcurrentHashMap<Integer, StackTraceElement[]> filterStackTraces(
+            ConcurrentHashMap<Integer, StackTraceElement[]> traces) throws Exception {
         Set<Integer> toremove = new HashSet<>();
-        for(Entry<Integer, StackTraceElement[]> entry : traces.entrySet()) {
+        for (Entry<Integer, StackTraceElement[]> entry : traces.entrySet()) {
             // Filter by the number of occurences.
+            // lifetimes: Map<Integer, Set<Integer>[]>
             if ((!lifetimes.containsKey(entry.getKey())) || (lifetimes.get(entry.getKey())[0].size() < MIN_OBJ_GEN)) {
                 toremove.add(entry.getKey());
                 continue;
             }
             // Filer by the package + class + method of occurence.
-            for(StackTraceElement ste : entry.getValue()) {
+            for (StackTraceElement ste : entry.getValue()) {
+                // filter
+                // com.google.monitoring.runtime.instrumentation.AllocationInstrumenter.instrument
                 if (filterStackTraceElement(ste)) {
                     toremove.add(entry.getKey());
                     break;
@@ -149,7 +165,7 @@ public class ObjectGraphAnalyzer {
             }
         }
 
-        for(Integer i : toremove) {
+        for (Integer i : toremove) {
             traces.remove(i);
         }
 
@@ -174,8 +190,7 @@ public class ObjectGraphAnalyzer {
                         node = newNode;
                         node.addSTID(entry.getKey());
                     }
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     System.err.println("WARN: stack trace failed to get hashCode:" + ste);
                 }
             }
@@ -184,11 +199,12 @@ public class ObjectGraphAnalyzer {
 
     /**
      * Returns a map between a stack trace ID and a set of object IDs.
+     * 
      * @param path
      * @throws Exception
      */
     public static void loadAllocationRecords(String path) throws Exception {
-        DataInputStream ois = new DataInputStream(new BufferedInputStream (new FileInputStream(path)));
+        DataInputStream ois = new DataInputStream(new BufferedInputStream(new FileInputStream(path)));
         try {
             while (true) {
                 int objID = ois.readInt();
@@ -199,8 +215,8 @@ public class ObjectGraphAnalyzer {
                 object2Stacktrace.put(objID, stID);
                 add2Lifetime(objID, stID);
             }
-        } catch (EOFException e) { }
-        finally {
+        } catch (EOFException e) {
+        } finally {
             ois.close();
         }
     }
@@ -220,7 +236,7 @@ public class ObjectGraphAnalyzer {
         long allocationCounter = 0;
         long traceCounter = 0;
         ConcurrentHashMap<Integer, StackTraceElement[]> traces = null;
-        Date start =new Date();
+        Date start = new Date();
         System.out.println(String.format("Loading allocation data..."));
 
         // For each file representing a stacktrace
@@ -244,7 +260,7 @@ public class ObjectGraphAnalyzer {
                 System.out.println(String.format("Loaded %d traces!", traceCounter));
             } else {
                 loadAllocationRecords(fileEntry.getAbsolutePath());
-                allocationCounter =  object2Stacktrace.size();
+                allocationCounter = object2Stacktrace.size();
                 System.out.println(String.format("Loaded %d allocations!", allocationCounter));
             }
             System.out.println("Processing " + fileEntry.getAbsolutePath() + " ...Done");
@@ -256,10 +272,54 @@ public class ObjectGraphAnalyzer {
         System.out.println("Building STTree ...");
         buildSTTree(traces);
         System.out.println("Building STTree ...Done");
-        Date finish =new Date();
+        Date finish = new Date();
         System.out.println(String.format("Loading allocation data...Done (%s sec)",
-                (finish.getTime()-start.getTime())/1000));
+                (finish.getTime() - start.getTime()) / 1000));
     }
+
+    public static synchronized void update(Long lObjID) {
+        int objID = lObjID.intValue();
+        // the stacktrace corresponding to the object
+        Integer stID = object2Stacktrace.get(objID);
+
+        if (stID == null) {
+            if (DEBUG_WARN) {
+                System.err.println("WARN: obj ID not found: " + objID);
+            }
+            return;
+        } else {
+            if (DEBUG) {
+                System.err.println("OK: obj ID found: " + objID);
+            }
+        }
+
+        if (!lifetimes.containsKey(stID)) {
+            if (DEBUG_WARN) {
+                System.err.println("WARN: st ID not found: " + stID);
+            }
+            return;
+        }
+
+        Set<Integer>[] allocs = lifetimes.get(stID);
+        for (int i = 0; i < allocs.length - 1; i++) {
+            if (allocs[i].contains(objID)) {
+                // if(allocs[i].size() == 0) {
+                // System.out.print("allocs[i].isEmpty? " + allocs[i].isEmpty());
+                // System.out.println("allocs[i]'s size = " + allocs[i].size());
+                // System.out.println("Moved objID " + objID + " from gen " + i + " to gen " +
+                // (i + 1));
+                // // System.out.println("allocs[i]'s size = " + allocs[i].size());
+                // }
+                allocs[i].remove(objID);
+                allocs[i + 1].add(objID);
+                return;
+            }
+        }
+        if (DEBUG_WARN) {
+            System.err.println("WARN: objID " + objID + " not found in stID  " + stID);
+        }
+    }
+
     /**
      * @param args the command line arguments
      * @throws java.lang.Exception
